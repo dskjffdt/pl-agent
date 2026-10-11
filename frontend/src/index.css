@@ -10,14 +10,6 @@ body {
     text-rendering: optimizeLegibility;
 }
 
-/* 流式滚动容器：隐藏滚动条，内容照常滚动 */
-.no-scrollbar {
-    scrollbar-width: none;
-}
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-
 /* ===== Markdown 内容样式 =====
    约束：code 与标题字号保持 inherit（浏览器默认给 code 更小字号、标题更大字号，
    流式揭示中纯文本→元素闭合瞬间会产生字号跳变，因此只调间距/颜色/背景，不动字号） */

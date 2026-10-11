@@ -56,4 +56,4 @@ type ChatRecord = {
     filtered?: boolean
 }
 
-export type { ChatCompletionResponse, SessionMeta, StoredMessage, ConversationDetail, ChatRecord, ToolEvent }
+export type { ChatCompletionResponse, SessionMeta, ConversationDetail, ChatRecord, ToolEvent }

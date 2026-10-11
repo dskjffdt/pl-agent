@@ -1,0 +1,15 @@
+[project]
+name = "server"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "asyncpg>=0.32.0",
+    "bcrypt>=4.2.0",
+    "fastapi[standard]>=0.141.1",
+    "openai>=3.19.2",
+    "pyjwt>=2.8.0",
+    "python-dotenv>=1.2.3",
+]
+[tool.fastapi]
+entrypoint = "main:app"
+

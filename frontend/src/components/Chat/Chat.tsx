@@ -5,9 +5,11 @@ type ChatProps = {
     onSend: (text: string) => void
     sending: boolean
     onStop: () => void
+    paused: boolean
+    onTogglePause: () => void
 }
 
-export default function Chat({ onSend, sending, onStop }: ChatProps) {
+export default function Chat({ onSend, sending, onStop, paused, onTogglePause }: ChatProps) {
     const [input, setInput] = useState('')
 
     function handleClick() {
@@ -29,6 +31,8 @@ export default function Chat({ onSend, sending, onStop }: ChatProps) {
                     handleClick={handleClick}
                     handleStop={onStop}
                     sending={sending}
+                    paused={paused}
+                    handleTogglePause={onTogglePause}
                 />
             </div>
             <p className="pt-[8px] text-center text-xs text-gray-400">

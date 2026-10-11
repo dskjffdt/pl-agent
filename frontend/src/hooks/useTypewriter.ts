@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { ChatRecord } from '../api/type'
 import { BlockAccumulator } from '../utils/blocks'
@@ -24,6 +24,9 @@ export function useTypewriter(
     })
     // 流是否已结束
     const streamDoneRef = useRef(false)
+    // 是否暂停揭示：暂停期间 SSE 数据照常入缓冲，RAF 停转，恢复后从断点继续
+    const pausedRef = useRef(false)
+    const [paused, setPaused] = useState(false)
     // RAF 句柄：null 表示未在跑
     const rafRef = useRef<number | null>(null)
     // tick 函数引用：每次 render 更新，让 RAF 永远调用最新闭包
@@ -48,6 +51,9 @@ export function useTypewriter(
 
     // tick 逻辑：从缓冲区中取固定字符数，push 进累积器，块产出直接追加到 records
     tickRef.current = () => {
+        // 暂停中：不消费缓冲，RAF 已停转，等恢复时重启
+        if (pausedRef.current) return
+
         const buffer = bufferRef.current
         const acc = accRef.current
 
@@ -131,12 +137,12 @@ export function useTypewriter(
         })
     }
 
-    // SSE 收到新文本：入队并启动 RAF（空文本直接忽略）
+    // SSE 收到新文本：入队并启动 RAF（空文本直接忽略；暂停期间只积压，恢复时统一启动）
     function enqueue(reasoning: string, content: string) {
         if (!reasoning && !content) return
         bufferRef.current.reasoning += reasoning
         bufferRef.current.content += content
-        startTyping()
+        if (!pausedRef.current) startTyping()
     }
 
     // 新一轮对话：重置缓冲与累积器
@@ -144,12 +150,28 @@ export function useTypewriter(
         bufferRef.current = { reasoning: '', content: '' }
         accRef.current = { reasoning: new BlockAccumulator(), content: new BlockAccumulator() }
         streamDoneRef.current = false
+        pausedRef.current = false
+        setPaused(false)
     }
 
-    // 流结束：标记后 RAF 会在处理完缓冲后自动收尾
+    // 流结束：标记后 RAF 会在处理完缓冲后自动收尾（暂停中则等恢复后收尾）
     function finish() {
         streamDoneRef.current = true
-        startTyping()
+        if (!pausedRef.current) startTyping()
+    }
+
+    // 暂停/继续：暂停时停掉 RAF（缓冲继续积压），继续时重启；流结束后恢复也能正常收尾
+    function togglePause() {
+        pausedRef.current = !pausedRef.current
+        setPaused(pausedRef.current)
+        if (pausedRef.current) {
+            if (rafRef.current !== null) {
+                cancelAnimationFrame(rafRef.current)
+                rafRef.current = null
+            }
+        } else {
+            startTyping()
+        }
     }
 
     // 停止生成：取消 RAF，清空缓冲，把残余文本密封成块保留（已生成的部分不丢）
@@ -173,5 +195,5 @@ export function useTypewriter(
         })
     }
 
-    return { reset, enqueue, finish, stop }
+    return { reset, enqueue, finish, stop, paused, togglePause }
 }

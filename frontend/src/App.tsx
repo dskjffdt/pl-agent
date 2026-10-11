@@ -25,8 +25,8 @@ function App() {
     const [sending, setSending] = useState(false)
     // 当前会话的对话记录
     const [records, setRecords] = useState<ChatRecord[]>([])
-    // 打字机引擎：SSE 文本经它逐字揭示成块
-    const { reset, enqueue, finish, stop } = useTypewriter(setRecords, () => setSending(false))
+    // 打字机引擎：SSE 文本经它逐字揭示成块；paused/togglePause 控制暂停与继续
+    const { reset, enqueue, finish, stop, paused, togglePause } = useTypewriter(setRecords, () => setSending(false))
     // 停止生成：中断当前流式请求
     const abortRef = useRef<AbortController | null>(null)
     // 会话 id 在流式请求中途才下发，sendPrompt 闭包里读不到最新值，用 ref 兜底
@@ -198,7 +198,7 @@ function App() {
             />
             <div className="flex min-w-0 flex-1 flex-col">
                 <ChatContent records={records} onSend={sendPrompt} />
-                <Chat onSend={sendPrompt} sending={sending} onStop={handleStop} />
+                <Chat onSend={sendPrompt} sending={sending} onStop={handleStop} paused={paused} onTogglePause={togglePause} />
             </div>
             {/* 无登录态时全屏弹窗登录 */}
             {!authed && <LoginModal onSuccess={handleLoginSuccess} />}

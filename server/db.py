@@ -132,3 +132,14 @@ async def append_messages(conversation_id: uuid.UUID, messages: list[dict]) -> N
         conversation_id,
         json.dumps(messages, ensure_ascii=False),
     )
+
+
+async def delete_conversation(user_id: int, conversation_id: uuid.UUID) -> bool:
+    assert pool is not None, "数据库连接池未初始化"
+    # user_id 限定归属，防止越权删除他人会话
+    tag = await pool.execute(
+        "DELETE FROM conversations WHERE id = $1 AND user_id = $2",
+        conversation_id,
+        user_id,
+    )
+    return tag == "DELETE 1"

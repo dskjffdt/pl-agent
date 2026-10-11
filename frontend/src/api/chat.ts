@@ -23,6 +23,13 @@ export async function getConversation(id: string): Promise<ConversationDetail> {
     return (await res.json()) as ConversationDetail
 }
 
+// 删除会话（侧栏入口；删除当前会话时由路由层负责回新会话并中止生成）
+export async function deleteConversation(id: string): Promise<void> {
+    const res = await fetch(`/conversations/${id}`, { method: 'DELETE' })
+    if (res.status === 401) unauthorized()
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
 type StreamHandlers = {
     // 首个事件下发会话 id（新建会话时前端据此挂到侧栏）
     onConversationId: (id: string) => void

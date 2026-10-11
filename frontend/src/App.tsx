@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AuthError, getUsername, logout, subscribeUnauthorized } from './api/auth'
-import { getConversation, listConversations, streamChat } from './api/chat'
+import { deleteConversation, getConversation, listConversations, streamChat } from './api/chat'
 import type { ChatRecord, SessionMeta } from './api/type'
 import Chat from './components/Chat/Chat'
 import ChatContent from './components/ChatContent/ChatContent'
@@ -128,6 +128,20 @@ function App() {
         navigate(`/chat/${id}`)
     }
 
+    // 删除会话：成功后移出侧栏；删的是当前会话则回新会话
+    // （路由 effect 会自动中止进行中的生成并清空记录，无需在这里处理）
+    async function handleDelete(id: string) {
+        if (!window.confirm('确定删除该会话？删除后不可恢复')) return
+        try {
+            await deleteConversation(id)
+        } catch (e) {
+            if (!(e instanceof AuthError)) console.error(e)
+            return
+        }
+        setSessions((prev) => prev.filter((s) => s.id !== id))
+        if (id === activeIdRef.current) navigate('/chat/new', { replace: true })
+    }
+
     async function sendPrompt(text: string) {
         setSending(true)
         // 先追加一条流式中的记录
@@ -193,6 +207,7 @@ function App() {
                 activeId={routeId}
                 username={username}
                 onSelect={handleSelect}
+                onDelete={handleDelete}
                 onNew={handleNewChat}
                 onLogout={handleLogout}
             />

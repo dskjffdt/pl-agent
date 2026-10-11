@@ -20,18 +20,30 @@ function LogoutIcon() {
     )
 }
 
+// 删除会话图标
+function DeleteIcon() {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <path d="M3 6h18" />
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+        </svg>
+    )
+}
+
 type SidebarProps = {
     sessions: SessionMeta[]
     // 当前会话 id（null 表示尚未落库的新会话）
     activeId: string | null
     username: string | null
     onSelect: (id: string) => void
+    onDelete: (id: string) => void
     onNew: () => void
     onLogout: () => void
 }
 
 // 侧栏：品牌行 + 新建会话 + 会话列表 + 账号区
-export default function Sidebar({ sessions, activeId, username, onSelect, onNew, onLogout }: SidebarProps) {
+export default function Sidebar({ sessions, activeId, username, onSelect, onDelete, onNew, onLogout }: SidebarProps) {
     return (
         <aside className="flex w-[240px] shrink-0 flex-col border-r border-gray-100 bg-gray-50/60">
             {/* 品牌行：与登录弹窗同款 logo */}
@@ -57,11 +69,12 @@ export default function Sidebar({ sessions, activeId, username, onSelect, onNew,
                 {sessions.map((s) => {
                     const active = s.id === activeId
                     return (
-                        <li key={s.id}>
+                        // relative + group：删除按钮绝对定位右侧，hover 整行时显现
+                        <li key={s.id} className="group relative">
                             <button
                                 onClick={() => onSelect(s.id)}
                                 title={s.title}
-                                className={`group mt-0.5 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-all ${
+                                className={`mt-0.5 flex w-full items-center gap-2 rounded-xl py-2 pl-3 pr-9 text-left text-sm transition-all ${
                                     active
                                         ? 'bg-white font-medium text-blue-600 shadow-sm ring-1 ring-gray-100'
                                         : 'text-gray-600 hover:bg-blue-50/70 hover:text-blue-500'
@@ -70,6 +83,14 @@ export default function Sidebar({ sessions, activeId, username, onSelect, onNew,
                                 {/* 选中蓝、平时灰、hover 提前的淡蓝 */}
                                 <ChatIcon className={active ? 'text-blue-500' : 'text-gray-300 group-hover:text-blue-400'} />
                                 <span className="truncate">{s.title}</span>
+                            </button>
+                            {/* 删除会话：hover 显现，与选择按钮是兄弟节点，点击不触发选择 */}
+                            <button
+                                onClick={() => onDelete(s.id)}
+                                title="删除会话"
+                                className="absolute right-1.5 top-1/2 mt-0.5 hidden -translate-y-1/2 rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500 group-hover:block"
+                            >
+                                <DeleteIcon />
                             </button>
                         </li>
                     )

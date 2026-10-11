@@ -71,6 +71,14 @@ async def get_conversation(conversation_id: uuid.UUID, user_id: int = Depends(ge
     return conv
 
 
+@app.delete("/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: uuid.UUID, user_id: int = Depends(get_current_user_id)):
+    deleted = await db.delete_conversation(user_id, conversation_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    return {"ok": True}
+
+
 @app.post("/chat/completions")
 async def chat_completions(
     chat_request: ChatRequest, user_id: int = Depends(get_current_user_id)

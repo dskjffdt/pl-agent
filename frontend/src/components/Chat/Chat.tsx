@@ -35,7 +35,7 @@ export default function Chat({ onSend, sending, onStop, paused, onTogglePause }:
                     handleTogglePause={onTogglePause}
                 />
             </div>
-            <p className="pt-[8px] text-center text-xs text-gray-400">
+            <p className="pt-[8px] text-center text-xs text-gray-500">
                 AI 生成内容仅供参考，请仔细甄别
             </p>
         </div>

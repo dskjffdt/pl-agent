@@ -22,6 +22,12 @@ function Input({
 }) {
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+    // 发送后焦点回到输入框，连续追问不用再点一次
+    function handleSend() {
+        handleClick()
+        textareaRef.current?.focus()
+    }
+
     // 高度自适应：每次内容变化先收缩到 auto 再取 scrollHeight，单行起步、封顶 MAX_HEIGHT
     useEffect(() => {
         const el = textareaRef.current
@@ -38,10 +44,10 @@ function Input({
                 placeholder="给 AI 发送消息…"
                 onChange={handleChangePrompt}
                 onKeyDown={(e) => {
-                    // Enter 发送，Shift+Enter 换行
-                    if (e.key === 'Enter' && !e.shiftKey && !sending) {
+                    // Enter 发送，Shift+Enter 换行；isComposing 时是输入法选词上屏的 Enter，不能当发送
+                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && !sending) {
                         e.preventDefault()
-                        handleClick()
+                        handleSend()
                     }
                 }}
                 value={prompt}
@@ -77,9 +83,9 @@ function Input({
                 </div>
             ) : (
                 <button
-                    onClick={handleClick}
+                    onClick={handleSend}
                     disabled={!prompt.trim()}
-                    className="absolute bottom-[14px] right-[16px] flex h-[36px] w-[36px] items-center justify-center rounded-full bg-blue-500 text-[20px] text-white shadow-sm shadow-blue-500/30 transition-all hover:bg-blue-600 hover:shadow-md hover:shadow-blue-500/30 active:scale-90 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none"
+                    className="absolute bottom-[14px] right-[16px] flex h-[36px] w-[36px] items-center justify-center rounded-full bg-blue-600 text-[20px] text-white shadow-sm shadow-blue-500/30 transition-all hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/30 active:scale-90 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none"
                 >
                     ↑
                 </button>

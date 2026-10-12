@@ -32,7 +32,7 @@ export default memo(function ConversationItem({ record, expanded, onToggle }: Co
             {/* 思考过程：流式中直接展示，结束后可折叠 */}
             {streaming ? (
                 <div className="w-full">
-                    <span className="text-[clamp(14px,1.4vw,17px)] text-gray-400">思考过程:</span>
+                    <span className="text-[clamp(14px,1.4vw,17px)] text-gray-500">思考过程:</span>
                     {/* 等待首字期间显示三点跳动，消除"发送后无反应"的错觉 */}
                     {waiting && (
                         <span className="ml-2 inline-flex items-center gap-1 align-middle">
@@ -42,7 +42,7 @@ export default memo(function ConversationItem({ record, expanded, onToggle }: Co
                         </span>
                     )}
                     <div
-                        className={`markdown-body text-[clamp(14px,1.4vw,17px)] text-gray-400 ${
+                        className={`markdown-body text-[clamp(14px,1.4vw,17px)] text-gray-500 ${
                             growingReasoning ? 'typing' : ''
                         }`}
                     >
@@ -56,13 +56,13 @@ export default memo(function ConversationItem({ record, expanded, onToggle }: Co
                 <>
                     <button
                         onClick={() => onToggle(record.id)}
-                        className="mt-1 flex w-full items-center gap-1 rounded-lg py-0.5 text-left text-[clamp(14px,1.4vw,17px)] text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-500"
+                        className="mt-1 flex w-full items-center gap-1 rounded-lg py-0.5 text-left text-[clamp(14px,1.4vw,17px)] text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-500"
                     >
                         <span>{expanded ? '▾' : '▸'}</span>
                         <span>思考过程</span>
                     </button>
                     {expanded && (
-                        <div className="mt-1 markdown-body text-[clamp(14px,1.4vw,17px)] text-gray-400">
+                        <div className="mt-1 markdown-body text-[clamp(14px,1.4vw,17px)] text-gray-500">
                             {record.reasoning.map((chunk, i) => (
                                 <MarkdownBlock key={i} text={chunk} />
                             ))}
@@ -93,7 +93,7 @@ export default memo(function ConversationItem({ record, expanded, onToggle }: Co
             {!streaming && record.content.length > 0 && (
                 <CopyButton
                     getText={() => record.content.join('')}
-                    className="mt-1 self-start text-gray-400 transition-colors hover:text-blue-500"
+                    className="mt-1 self-start text-gray-500 transition-colors hover:text-blue-500"
                 />
             )}
             {/* 请求失败提示 */}

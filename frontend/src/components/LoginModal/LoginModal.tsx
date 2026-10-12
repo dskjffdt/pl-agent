@@ -84,7 +84,7 @@ export default function LoginModal({ onSuccess }: { onSuccess: (username: string
                         </svg>
                     </div>
                     <h1 className="mt-4 text-lg font-semibold text-gray-900">PL Agent</h1>
-                    <p className="mt-1 text-sm text-gray-400">内部 AI 助手 · 登录后继续</p>
+                    <p className="mt-1 text-sm text-gray-500">内部 AI 助手 · 登录后继续</p>
                 </div>
 
                 <label className="group relative mt-6 block">
@@ -116,7 +116,7 @@ export default function LoginModal({ onSuccess }: { onSuccess: (username: string
                             type="button"
                             onClick={() => setShowPwd((v) => !v)}
                             title={showPwd ? '隐藏密码' : '显示密码'}
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-300 transition-colors hover:text-gray-500"
+                            className="absolute -m-2 right-3.5 top-1/2 -translate-y-1/2 p-2 text-gray-300 transition-colors hover:text-gray-500"
                         >
                             <EyeIcon off={showPwd} />
                         </button>
@@ -140,13 +140,13 @@ export default function LoginModal({ onSuccess }: { onSuccess: (username: string
                     <button
                         type="submit"
                         disabled={loading || !username.trim() || !password}
-                        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-medium text-white shadow-sm shadow-blue-500/30 transition-all hover:bg-blue-600 hover:shadow-md hover:shadow-blue-500/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none"
+                        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-medium text-white shadow-sm shadow-blue-500/30 transition-all hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none"
                     >
                         {loading && <SpinnerIcon />}
                         {loading ? '登录中…' : '登 录'}
                     </button>
 
-                <p className="mt-6 border-t border-gray-100 pt-4 text-center text-xs text-gray-300">
+                <p className="mt-6 border-t border-gray-100 pt-4 text-center text-xs text-gray-500">
                     内部系统 · 仅限授权账号使用
                 </p>
             </form>

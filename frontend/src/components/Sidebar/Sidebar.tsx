@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { SessionMeta } from '../../api/type'
 
 // 会话气泡小图标（列表项左侧）
@@ -43,7 +44,8 @@ type SidebarProps = {
 }
 
 // 侧栏：品牌行 + 新建会话 + 会话列表 + 账号区
-export default function Sidebar({ sessions, activeId, username, onSelect, onDelete, onNew, onLogout }: SidebarProps) {
+// memo：配合 App 侧全量 useCallback 的稳定 props，流式重渲期间整棵侧栏跳过渲染
+function Sidebar({ sessions, activeId, username, onSelect, onDelete, onNew, onLogout }: SidebarProps) {
     return (
         <aside className="flex w-[240px] shrink-0 flex-col border-r border-gray-100 bg-gray-50/60">
             {/* 品牌行：与登录弹窗同款 logo */}
@@ -59,7 +61,7 @@ export default function Sidebar({ sessions, activeId, username, onSelect, onDele
             <div className="p-3 pt-2">
                 <button
                     onClick={onNew}
-                    className="w-full rounded-xl bg-blue-500 py-2 text-sm font-medium text-white shadow-sm shadow-blue-500/25 transition-all hover:bg-blue-600 hover:shadow-md hover:shadow-blue-500/25 active:scale-[0.98]"
+                    className="w-full rounded-xl bg-blue-600 py-2 text-sm font-medium text-white shadow-sm shadow-blue-500/25 transition-all hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/25 active:scale-[0.98]"
                 >
                     ＋ 新建会话
                 </button>
@@ -114,3 +116,5 @@ export default function Sidebar({ sessions, activeId, username, onSelect, onDele
         </aside>
     )
 }
+
+export default memo(Sidebar)

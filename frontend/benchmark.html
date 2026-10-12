@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PL-Agent 流式渲染基准测试</title>
+    <style>
+      body { font-family: Consolas, "Microsoft YaHei", monospace; margin: 0; padding: 24px; background: #101418; color: #d7dde3; }
+      h1 { font-size: 18px; margin: 0 0 4px; }
+      .sub { color: #8a949e; font-size: 12px; margin-bottom: 16px; }
+      .panel { background: #171d24; border: 1px solid #2a333d; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; }
+      .panel h2 { font-size: 14px; margin: 0 0 8px; color: #6cb2ff; }
+      .panel.running h2::after { content: " ● 运行中"; color: #ffb347; }
+      .panel.done h2::after { content: " ✓ 完成"; color: #6fd08c; }
+      .stats { font-size: 12px; line-height: 1.8; white-space: pre-wrap; }
+      #out { width: 100%; height: 220px; background: #0b0f13; color: #9fe6a0; border: 1px solid #2a333d; border-radius: 6px; padding: 10px; font-size: 11px; }
+      .viewport { height: 90px; overflow: hidden; border: 1px solid #2a333d; border-radius: 6px; padding: 8px; font-size: 12px; line-height: 1.6; background: #0d1117; }
+    </style>
+  </head>
+  <body>
+    <h1>PL-Agent 流式渲染基准测试（生产构建）</h1>
+    <div class="sub">模拟 token 高速到达（每 4ms 一个 chunk），自动依次运行 A / B 两组，全部结束后输出 JSON。</div>
+    <div id="root"></div>
+    <script type="module" src="/src/benchmark/main.tsx"></script>
+  </body>
+</html>

@@ -28,11 +28,6 @@ export function handleUnauthorized(): void {
 // 401 时先广播再抛错，调用方凭 AuthError 静默跳过错误提示（登录框已接管）
 export class AuthError extends Error {}
 
-function unauthorized(): never {
-    handleUnauthorized()
-    throw new AuthError('登录已过期')
-}
-
 export async function login(username: string, password: string): Promise<string> {
     const res = await fetch('/login', {
         method: 'POST',

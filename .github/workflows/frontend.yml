@@ -1,0 +1,35 @@
+# 前端 CI：push 到 main 时跑类型检查 + 构建 + 单测
+# 类型错误当场红叉，不用等到 Vercel 部署失败才发现；与 Vercel 部署是并行检查，互不阻塞
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+
+# 连续 push 时取消还在跑的旧提交，省执行额度
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # 前端在子目录，所有 run 步骤都在这里执行
+        working-directory: frontend
+    steps:
+      # 拉代码
+      - uses: actions/checkout@v4
+      # 装 Node 22，并按 package-lock.json 的 hash 缓存 npm store（依赖没变时跳过下载）
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # 严格按 lockfile 精确装包：lockfile 与 package.json 不同步直接失败，杜绝版本漂移
+      - run: npm ci
+      # tsc -b && vite build
+      - run: npm run build
+      # vitest run
+      - run: npm test

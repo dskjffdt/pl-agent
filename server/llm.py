@@ -1,3 +1,4 @@
+import asyncio
 import json
 from collections.abc import AsyncGenerator
 
@@ -5,11 +6,9 @@ from openai import AsyncOpenAI
 
 import tools
 from config import API_KEY, BASE_URL, MODEL, SYSTEM_PROMPT
-from content_filter import match_banned, split_safe_tail
 
 
-# 系统级安全约束：与违禁词过滤（content_filter.py）形成双保险，
-# 前者减少模型产出违禁内容的概率，后者兜底拦住漏网的输出
+# 系统级安全约束：提示词层面禁止模型产出违法内容与攻击代码
 SAFETY_PROMPT = (
     "安全约束（必须严格遵守）：\n"
     "1. 禁止生成任何违法有害内容，包括暴力恐怖、武器与毒品制作、赌博诈骗等；\n"
@@ -18,36 +17,85 @@ SAFETY_PROMPT = (
     "4. 用户要求生成上述内容时，直接拒绝并简要说明原因。"
 )
 
+# 工具循环熔断：模型异常反复请求工具（或工具结果无法让它收敛）时，
+# 最多执行 N 轮工具调用，超过后强制收尾，防 while True 空转烧 token
+MAX_TOOL_ROUNDS = 5
 
-def _build_messages(history: list[dict], prompt: str) -> list[dict]:
+
+# 上下文裁剪已由 context.py 按 token 预算精确处理（含摘要注入），
+# 这里只负责拼装：system（含记忆/摘要）+ 历史 + 本轮提问
+def _build_messages(
+    history: list[dict],
+    prompt: str,
+    *,
+    prefix_summary: str | None = None,
+    memories: list[str] | None = None,
+) -> list[dict]:
     return [
         # 存库的 assistant 消息里带 reasoning 字段，拼上下文时只取 role/content
-        {"role": "system", "content": f"{SYSTEM_PROMPT}\n\n{SAFETY_PROMPT}"},
+        {"role": "system", "content": system_text(memories, prefix_summary)},
         *[{"role": m["role"], "content": m["content"]} for m in history],
         {"role": "user", "content": prompt},
     ]
 
 
+def system_text(memories: list[str] | None = None, summary: str | None = None) -> str:
+    """system 消息拼装（context.py 计数复用同一函数，避免两处拼串漂移）"""
+    text = f"{SYSTEM_PROMPT}\n\n{SAFETY_PROMPT}"
+    if memories:
+        text += "\n\n[用户长期记忆]\n" + "\n".join(f"- {m}" for m in memories)
+    if summary:
+        text += f"\n\n[早期对话摘要]\n{summary}"
+    return text
+
+
+# 懒加载单例：全进程共用连接池，避免每请求新建客户端的低效与泄漏
+_client: AsyncOpenAI | None = None
+
+
+def _get_client() -> AsyncOpenAI:
+    global _client
+    if _client is None:
+        _client = AsyncOpenAI(api_key=API_KEY, base_url=BASE_URL)
+    return _client
+
+
+async def complete(system: str, user: str) -> str:
+    """非流式单轮补全（摘要生成/记忆提取/标题生成三处共用的公共 helper）"""
+    resp = await _get_client().chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+    )
+    return resp.choices[0].message.content or ""
+
+
 # 工具循环：模型每轮可能返回文本或 tool_calls，直到 finish_reason == stop 才结束
 # 产出 SSE 事件 dict，最后一个事件为 {"type": "result", ...} 汇总本轮完整输出（仅供路由层入库，不透传客户端）
-# 输出内容流式过违禁词：命中即截断（不再下发后续文本），由路由层补发 finish_reason=content_filter
-async def stream_chat(history: list[dict], prompt: str) -> AsyncGenerator[dict, None]:
-    client = AsyncOpenAI(api_key=API_KEY, base_url=BASE_URL)
-    messages = _build_messages(history, prompt)
+async def stream_chat(
+    history: list[dict],
+    prompt: str,
+    *,
+    prefix_summary: str | None = None,
+    memories: list[str] | None = None,
+) -> AsyncGenerator[dict, None]:
+    client = _get_client()
+    messages = _build_messages(history, prompt, prefix_summary=prefix_summary, memories=memories)
 
     full_reasoning_content = ""
-    # 已确认安全、最终可入库的正文（不含待确认尾巴与被截断部分）
+    # 本轮完整正文（流式累计，供 result 汇总事件入库）
     full_content = ""
-    # 待确认尾巴：跨分片违禁词检查，最多扣留最长违禁词长度 - 1 个字符
-    pending = ""
-    filtered = False
+    # 已执行的工具轮数（每请求一批工具算一轮）
+    tool_rounds = 0
 
     while True:
         response = await client.chat.completions.create(
             model=MODEL,
             messages=messages,
             tools=tools.TOOLS,
-            temperature=0,
+            temperature=2,
             stream=True,
         )
 
@@ -68,20 +116,8 @@ async def stream_chat(history: list[dict], prompt: str) -> AsyncGenerator[dict, 
             content = getattr(delta, "content", None)
             if content:
                 assistant_content += content
-                pending += content
-                if match_banned(pending):
-                    # 命中违禁词：立即停止生成，尾巴与后续内容全部丢弃
-                    # 提前 break 留下未消费的响应流，显式关闭归还连接
-                    filtered = True
-                    try:
-                        await response.close()
-                    except Exception:
-                        pass
-                    break
-                safe, pending = split_safe_tail(pending)
-                if safe:
-                    full_content += safe
-                    yield {"content": safe}
+                full_content += content
+                yield {"content": content}
 
             # tool_calls 分片到达，按 index 拼装完整调用
             for tc in getattr(delta, "tool_calls", None) or []:
@@ -98,18 +134,17 @@ async def stream_chat(history: list[dict], prompt: str) -> AsyncGenerator[dict, 
             if msg.finish_reason:
                 finish_reason = msg.finish_reason
 
-        if filtered:
-            break
-
         # 没有工具调用：本轮就是最终回答，收尾后结束
         if finish_reason != "tool_calls" or not tool_calls_acc:
-            # 流结束时最后一次全量检查尾巴（此处已到终点，不再有分片拼齐它）
-            if match_banned(pending):
-                filtered = True
-            elif pending:
-                full_content += pending
-                yield {"content": pending}
-            pending = ""
+            break
+
+        # 熔断判定在执行工具之前：已执行满 MAX_TOOL_ROUNDS 轮模型仍请求工具，
+        # 下发可见终止提示并收尾（提示计入 full_content，随 result 落库），防空转烧 token
+        tool_rounds += 1
+        if tool_rounds > MAX_TOOL_ROUNDS:
+            notice = f"\n\n（已连续执行 {MAX_TOOL_ROUNDS} 轮工具调用仍未收敛，为防止异常循环已自动终止）"
+            full_content += notice
+            yield {"content": notice}
             break
 
         # 组装含完整 tool_calls 的 assistant 消息，按协议回传给模型
@@ -131,7 +166,8 @@ async def stream_chat(history: list[dict], prompt: str) -> AsyncGenerator[dict, 
         for acc in ordered_calls:
             yield {"type": "tool_start", "id": acc["id"], "name": acc["name"]}
             try:
-                result = tools.execute_tool(acc["name"], acc["arguments"])
+                # to_thread 防止 I/O 类工具阻塞事件循环（当前工具是纯 CPU 微秒级，开销可忽略）
+                result = await asyncio.to_thread(tools.execute_tool, acc["name"], acc["arguments"])
                 status = "done"
             except Exception as e:
                 result = {"error": str(e)}
@@ -142,9 +178,6 @@ async def stream_chat(history: list[dict], prompt: str) -> AsyncGenerator[dict, 
                 "tool_call_id": acc["id"],
                 "content": json.dumps(result, ensure_ascii=False),
             })
-
-    if filtered:
-        yield {"finish_reason": "content_filter"}
 
     yield {
         "type": "result",

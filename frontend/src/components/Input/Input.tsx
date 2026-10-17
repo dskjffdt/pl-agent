@@ -9,16 +9,12 @@ function Input({
     handleClick,
     handleStop,
     sending,
-    paused,
-    handleTogglePause,
 }: {
     prompt: string
     handleChangePrompt: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
     handleClick: () => void
     handleStop: () => void
     sending: boolean
-    paused: boolean
-    handleTogglePause: () => void
 }) {
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -53,34 +49,13 @@ function Input({
                 value={prompt}
             ></textarea>
             {sending ? (
-                // 生成中：暂停/继续 + 停止。暂停只停打字机揭示（数据继续缓冲），停止中断请求
-                <div className="absolute bottom-[14px] right-[16px] flex items-center gap-[8px]">
-                    <button
-                        onClick={handleTogglePause}
-                        title={paused ? '继续' : '暂停'}
-                        className="flex h-[36px] w-[36px] items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition-all hover:bg-gray-100 active:scale-90"
-                    >
-                        {paused ? (
-                            // 继续：播放三角
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M8 5.5v13l11-6.5z" />
-                            </svg>
-                        ) : (
-                            // 暂停：双竖条
-                            <span className="flex gap-[3px]">
-                                <span className="block h-[12px] w-[3px] rounded-[1px] bg-gray-600"></span>
-                                <span className="block h-[12px] w-[3px] rounded-[1px] bg-gray-600"></span>
-                            </span>
-                        )}
-                    </button>
-                    <button
-                        onClick={handleStop}
-                        title="停止生成"
-                        className="flex h-[36px] w-[36px] items-center justify-center rounded-full bg-gray-900 text-white transition-all hover:bg-gray-700 active:scale-90"
-                    >
-                        <span className="block h-[12px] w-[12px] rounded-[2px] bg-white"></span>
-                    </button>
-                </div>
+                <button
+                    onClick={handleStop}
+                    title="停止生成"
+                    className="absolute bottom-[14px] right-[16px] flex h-[36px] w-[36px] items-center justify-center rounded-full bg-gray-900 text-white transition-all hover:bg-gray-700 active:scale-90"
+                >
+                    <span className="block h-[12px] w-[12px] rounded-[2px] bg-white"></span>
+                </button>
             ) : (
                 <button
                     onClick={handleSend}

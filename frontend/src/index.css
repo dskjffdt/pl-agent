@@ -50,33 +50,42 @@ body {
     margin-top: 0;
 }
 
-/* 代码块：浅灰底圆角，长行自动折行（不产生横向滚动条，避免其出现/消失引起的重排与内容跳动） */
+/* 代码块：深色底 + 顶部语言条，长行自动折行（不产生横向滚动条，避免其出现/消失引起的重排与内容跳动） */
 .markdown-body pre {
     white-space: pre-wrap;
     max-width: 100%;
-    background: #f6f8fa;
-    border: 1px solid #e5e7eb;
+    background: #1e1e2e;
+    color: #cdd6f4;
     border-radius: 8px;
-    padding: 10px 14px;
+    padding: 12px 14px;
     margin: 0.75em 0;
+    font-size: 0.875em;
+    line-height: 1.6;
 }
 .markdown-body pre code {
     font-size: inherit;
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: inherit;
+    background: none;
+    padding: 0;
 }
 
-/* 行内代码：浅灰底小圆角 */
+/* 行内代码：浅蓝灰底小圆角，与深色代码块形成层次 */
 .markdown-body :not(pre) > code {
-    background: #f1f2f4;
+    background: #eef2f7;
     border-radius: 4px;
     padding: 0.1em 0.4em;
+    font-size: 0.875em;
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: #3b4a6b;
 }
 
-/* 引用块：左边框 + 弱化色 */
+/* 引用块：左边框 + 弱化色 + 浅底 */
 .markdown-body blockquote {
-    border-left: 3px solid #d1d5db;
-    padding-left: 12px;
+    border-left: 3px solid #c4cad4;
+    padding: 0.25em 0 0.25em 12px;
+    background: #f9fafb;
+    border-radius: 0 6px 6px 0;
     color: #6b7280;
     margin: 0.5em 0;
 }
@@ -88,6 +97,8 @@ body {
     overflow-x: auto;
     border-collapse: collapse;
     margin: 0.75em 0;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
 }
 .markdown-body th,
 .markdown-body td {
@@ -96,7 +107,7 @@ body {
     text-align: left;
 }
 .markdown-body th {
-    background: #f9fafb;
+    background: #f3f4f6;
     font-weight: 600;
 }
 
@@ -107,10 +118,13 @@ body {
     margin: 1em 0;
 }
 .markdown-body a {
-    color: #3b82f6;
+    color: #2563eb;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: #93c5fd;
 }
 .markdown-body a:hover {
-    text-decoration: underline;
+    text-decoration-color: currentColor;
 }
 .markdown-body strong {
     font-weight: 600;
@@ -122,6 +136,13 @@ body {
     word-break: break-word;
     line-height: 1.75;
     letter-spacing: 0.01em;
+}
+
+/* stream-md 库自带 CSS 会设固定 font-size，强制继承父级以使 clamp 字号生效 */
+.markdown-body .stream-md,
+.markdown-body .smd-block,
+.markdown-body .smd-block * {
+    font-size: inherit;
 }
 
 /* ---- 流式状态指示 ---- */
@@ -152,18 +173,7 @@ body {
     }
 }
 
-/* 打字光标：挂在正在生长的块末尾（容器加 .typing 时生效） */
-.typing > :last-child::after {
-    content: '▍';
-    margin-left: 1px;
-    color: #3b82f6;
-    animation: cursor-blink 1s step-end infinite;
-}
-@keyframes cursor-blink {
-    50% {
-        opacity: 0;
-    }
-}
+/* stream-md 内置打字光标（active block 末尾），无需自定义 */
 
 /* 细滚动条：6px 窄条，透明轨道，hover 加深 */
 .thin-scrollbar {

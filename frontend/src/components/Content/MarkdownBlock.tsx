@@ -1,15 +1,7 @@
-import { Suspense, lazy } from 'react'
+import { StreamMD } from 'stream-md'
+import 'stream-md/styles.css'
 
-// react-markdown 全家桶（unified/remark 生态，体积大头）按需加载：
-// 空会话首屏（侧栏 + 输入框 + 欢迎语）完全用不到 markdown 渲染器，
-// 首条消息出现时才拉取对应 chunk——弱网下首屏 JS 显著减小，LCP 提前
-const Impl = lazy(() => import('./MarkdownBlockImpl'))
-
-export default function MarkdownBlock({ text }: { text: string }) {
-    return (
-        // chunk 下载期间降级为纯文本：流式揭示语义不变，chunk 到位后升级为完整 markdown 渲染
-        <Suspense fallback={<span>{text}</span>}>
-            <Impl text={text} />
-        </Suspense>
-    )
+// React Compiler 自动 memo：text 引用不变则跳过重渲
+export default function MarkdownBlock({ text }: { text: string; streaming?: boolean }) {
+    return <StreamMD text={text} theme="light" showCursor={false} />
 }

@@ -1,0 +1,71 @@
+diff --git a/node_modules/stream-md/dist/index.cjs b/node_modules/stream-md/dist/index.cjs
+index 3796b75..c808ed1 100644
+--- a/node_modules/stream-md/dist/index.cjs
++++ b/node_modules/stream-md/dist/index.cjs
+@@ -2208,7 +2208,7 @@ function StreamMD({
+     });
+   }
+   const store = storeRef.current;
+-  React.useEffect(() => {
++  React.useLayoutEffect(() => {
+     store.push(text);
+   }, [text, store]);
+   const snapshot = React.useSyncExternalStore(
+diff --git a/node_modules/stream-md/dist/index.js b/node_modules/stream-md/dist/index.js
+index 2aa5b6f..8e470fe 100644
+--- a/node_modules/stream-md/dist/index.js
++++ b/node_modules/stream-md/dist/index.js
+@@ -1,5 +1,5 @@
+ import * as React from 'react';
+-import { memo, useState, useCallback, useMemo, useRef, useEffect, useSyncExternalStore } from 'react';
++import { memo, useState, useCallback, useMemo, useRef, useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
+ import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
+ 
+ // src/components/StreamMD.tsx
+@@ -2187,7 +2187,7 @@ function StreamMD({
+     });
+   }
+   const store = storeRef.current;
+-  useEffect(() => {
++  useLayoutEffect(() => {
+     store.push(text);
+   }, [text, store]);
+   const snapshot = useSyncExternalStore(
+@@ -2201,10 +2201,14 @@ function StreamMD({
+   const themeClass = theme === "none" ? "" : `smd-theme-${theme}`;
+   const showCursorClass = showCursor ? "" : " smd-no-cursor";
+   const { blocks, activeIndex, incompleteLine } = snapshot;
++  const _h = incompleteLine.match(/^ {0,3}(#{1,6})\s+(.*)/);
++  const _last = blocks[blocks.length - 1];
++  const _paraInterrupt = _h && _last && _last.type === "paragraph" && !_last.closed;
+   return /* @__PURE__ */ jsxs("div", { className: `stream-md ${themeClass}${showCursorClass} ${className ?? ""}`.trim(), children: [
+     blocks.map((block, idx) => {
+       const isActive = idx === activeIndex && !block.closed;
+-      const displayBlock = isActive && incompleteLine ? {
++      const skipAppend = isActive && _h && block.type === "paragraph";
++      const displayBlock = isActive && incompleteLine && !skipAppend ? {
+         ...block,
+         content: block.content + (block.content ? "\n" : "") + incompleteLine
+       } : block;
+@@ -2221,16 +2225,12 @@ function StreamMD({
+         block.id
+       );
+     }),
+-    incompleteLine && (blocks.length === 0 || blocks[blocks.length - 1].closed) && /* @__PURE__ */ jsx("div", { className: "smd-block smd-block-active", children: /* @__PURE__ */ jsx(
+-      ParagraphBlock,
++    incompleteLine && (blocks.length === 0 || blocks[blocks.length - 1].closed || _paraInterrupt) && /* @__PURE__ */ jsx("div", { className: "smd-block smd-block-active", children: /* @__PURE__ */ jsx(
++      _h ? HeadingBlock : ParagraphBlock,
+       {
+-        block: {
+-          id: "_pending",
+-          type: "paragraph",
+-          content: incompleteLine,
+-          closed: false,
+-          meta: {}
+-        },
++        block: _h
++          ? { id: "_pending", type: "heading", content: _h[2], closed: false, meta: { level: _h[1].length } }
++          : { id: "_pending", type: "paragraph", content: incompleteLine, closed: false, meta: {} },
+         ...stableOverrides ? { overrides: stableOverrides } : {},
+         ...stablePlugins ? { inlinePlugins: stablePlugins } : {}
+       }

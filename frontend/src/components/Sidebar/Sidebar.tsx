@@ -1,61 +1,41 @@
-import { memo } from 'react'
+import { useState, type ReactNode } from 'react'
+import SessionList from './SessionList'
+import ConfirmModal from '../ConfirmModal'
 import type { SessionMeta } from '../../api/type'
-
-// 会话气泡小图标（列表项左侧）
-function ChatIcon({ className }: { className?: string }) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 ${className ?? ''}`}>
-            <path d="M21 12a8 8 0 0 1-8 8H4l2.5-3A8 8 0 1 1 21 12Z" />
-        </svg>
-    )
-}
-
-// 退出登录图标
-function LogoutIcon() {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-            <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" />
-            <path d="m16 17 5-5-5-5" />
-            <path d="M21 12H9" />
-        </svg>
-    )
-}
-
-// 删除会话图标
-function DeleteIcon() {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-            <path d="M3 6h18" />
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-        </svg>
-    )
-}
+import { useChatStreams } from '../../stores/chat'
 
 type SidebarProps = {
     sessions: SessionMeta[]
     // 当前会话 id（null 表示尚未落库的新会话）
     activeId: string | null
-    username: string | null
     onSelect: (id: string) => void
-    onDelete: (id: string) => void
+    // 删除动作（请求 + store/路由清理）由 App 执行；确认弹窗的开关态收敛在侧栏内部
+    onRequestDelete: (id: string) => void
     onNew: () => void
-    onLogout: () => void
+    // 底部插槽：登录登出区域（AuthArea）由 App 注入，侧栏不持有登录态逻辑
+    footer?: ReactNode
 }
 
-// 侧栏：品牌行 + 新建会话 + 会话列表 + 账号区
-// memo：配合 App 侧全量 useCallback 的稳定 props，流式重渲期间整棵侧栏跳过渲染
-function Sidebar({ sessions, activeId, username, onSelect, onDelete, onNew, onLogout }: SidebarProps) {
+// 侧栏（历史区）：品牌行 + 新建会话 + 历史会话列表 + 删除确认弹窗 + 底部插槽
+// React Compiler 自动做 props 相等跳过：会话内容流式重渲期间，props 不变则整棵侧栏不渲染；
+// 本组件对 store 的订阅（流式 id 集合）只在流开始/结束时变化，不随 token flush
+export default function Sidebar({ sessions, activeId, onSelect, onRequestDelete, onNew, footer }: SidebarProps) {
+    // 流式中的会话 id 集合：join 成字符串保证引用稳定，SessionList 内再转 Set
+    const streamingIds = useChatStreams((s) => s.entries.filter((e) => e.streaming).map((e) => e.chatId).join(','))
+
+    // 删除确认弹窗：纯交互态，唯一触发源在本组件列表内，无需上浮 App
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+
     return (
-        <aside className="flex w-[240px] shrink-0 flex-col border-r border-gray-100 bg-gray-50/60">
+        <aside className="flex w-[300px] shrink-0 flex-col border-r border-gray-100 bg-gray-50/60">
             {/* 品牌行：与登录弹窗同款 logo */}
-            <div className="flex items-center gap-2 px-4 pb-1 pt-4">
-                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-blue-400 to-blue-600">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+            <div className="flex items-center gap-2.5 px-4 pb-1 pt-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-600">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
                         <path d="M21 12a8 8 0 0 1-8 8H4l2.5-3A8 8 0 1 1 21 12Z" />
                     </svg>
                 </div>
-                <span className="text-sm font-semibold text-gray-800">PL Agent</span>
+                <span className="text-lg font-semibold text-gray-800">PL Agent</span>
             </div>
 
             <div className="p-3 pt-2">
@@ -67,54 +47,28 @@ function Sidebar({ sessions, activeId, username, onSelect, onDelete, onNew, onLo
                 </button>
             </div>
 
-            <ul className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-                {sessions.map((s) => {
-                    const active = s.id === activeId
-                    return (
-                        // relative + group：删除按钮绝对定位右侧，hover 整行时显现
-                        <li key={s.id} className="group relative">
-                            <button
-                                onClick={() => onSelect(s.id)}
-                                title={s.title}
-                                className={`mt-0.5 flex w-full items-center gap-2 rounded-xl py-2 pl-3 pr-9 text-left text-sm transition-all ${
-                                    active
-                                        ? 'bg-white font-medium text-blue-600 shadow-sm ring-1 ring-gray-100'
-                                        : 'text-gray-600 hover:bg-blue-50/70 hover:text-blue-500'
-                                }`}
-                            >
-                                {/* 选中蓝、平时灰、hover 提前的淡蓝 */}
-                                <ChatIcon className={active ? 'text-blue-500' : 'text-gray-300 group-hover:text-blue-400'} />
-                                <span className="truncate">{s.title}</span>
-                            </button>
-                            {/* 删除会话：hover 显现，与选择按钮是兄弟节点，点击不触发选择 */}
-                            <button
-                                onClick={() => onDelete(s.id)}
-                                title="删除会话"
-                                className="absolute right-1.5 top-1/2 mt-0.5 hidden -translate-y-1/2 rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500 group-hover:block"
-                            >
-                                <DeleteIcon />
-                            </button>
-                        </li>
-                    )
-                })}
-            </ul>
+            <SessionList
+                sessions={sessions}
+                activeId={activeId}
+                streamingIds={streamingIds}
+                onSelect={onSelect}
+                onDelete={setPendingDeleteId}
+            />
 
-            <div className="flex items-center gap-2 border-t border-gray-100 px-4 py-3">
-                {/* 头像：用户名首字符 */}
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-xs font-medium text-white">
-                    {username?.[0]?.toUpperCase() ?? '?'}
-                </div>
-                <span className="min-w-0 flex-1 truncate text-sm text-gray-600">{username}</span>
-                <button
-                    onClick={onLogout}
-                    title="退出登录"
-                    className="shrink-0 rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
-                >
-                    <LogoutIcon />
-                </button>
-            </div>
+            {footer}
+
+            {/* 删除会话确认：替换 window.confirm，支持自定义文案与键盘关闭 */}
+            <ConfirmModal
+                open={pendingDeleteId !== null}
+                title="删除会话"
+                message="确定删除该会话？删除后不可恢复"
+                confirmText="删除"
+                onConfirm={() => {
+                    if (pendingDeleteId) onRequestDelete(pendingDeleteId)
+                    setPendingDeleteId(null)
+                }}
+                onCancel={() => setPendingDeleteId(null)}
+            />
         </aside>
     )
 }
-
-export default memo(Sidebar)

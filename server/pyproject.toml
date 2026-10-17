@@ -9,7 +9,11 @@ dependencies = [
     "openai>=3.19.2",
     "pyjwt>=2.8.0",
     "python-dotenv>=1.2.3",
+    "tokenizers>=0.21",
 ]
 [tool.fastapi]
 entrypoint = "main:app"
+
+[dependency-groups]
+dev = ["pytest>=8"]
 

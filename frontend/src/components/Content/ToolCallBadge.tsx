@@ -6,7 +6,7 @@ export default function ToolCallBadge({ event }: { event: ToolEvent }) {
     return (
         <div
             className={`inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[clamp(13px,1.3vw,15px)] ${
-                status === 'error' ? 'text-red-500' : 'text-blue-600'
+                status === 'error' ? 'text-red-600' : 'text-blue-600'
             }`}
         >
             <span className={status === 'running' ? 'inline-block animate-spin' : ''}>

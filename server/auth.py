@@ -37,7 +37,15 @@ def set_session_cookie(response, token: str) -> None:
 
 
 def clear_session_cookie(response) -> None:
-    response.delete_cookie(key=SESSION_COOKIE, path="/")
+    # 删除指令的属性与 set_session_cookie 保持一致：Secure cookie 在部分浏览器上
+    # 要求删除指令同样带 Secure，否则旧 cookie 可能残留
+    response.delete_cookie(
+        key=SESSION_COOKIE,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+    )
 
 
 # 路由依赖：从 HttpOnly cookie 取 token 校验，通过后返回 user_id
